@@ -1,3 +1,15 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+dist/
+build/
+.idea/
+.vscode/
+
 # Logs
 logs
 *.log

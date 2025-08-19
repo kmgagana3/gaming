@@ -1,0 +1,39 @@
+neurospectra/
+  backend/
+    README.md
+    requirements.txt
+    app/
+      __init__.py
+      main.py
+      schemas.py
+      models/
+        __init__.py
+        model_manager.py
+        artifacts/        # created at runtime if needed
+      utils/
+        __init__.py
+        eeg_features.py
+        audio_features.py
+        video_features.py
+        game_features.py
+        feedback.py
+  frontend/
+    README.md
+    package.json
+    tsconfig.json
+    vite.config.ts
+    index.html
+    src/
+      main.tsx
+      App.tsx
+      services/
+        api.ts
+      components/
+        EEGUpload.tsx
+        AVUpload.tsx
+        GameAssessment.tsx
+        Results.tsx
+
+# Additional files at workspace root
+.gitignore
+README.md
