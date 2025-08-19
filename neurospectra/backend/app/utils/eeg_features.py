@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import io
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
-import pandas as pd
 
 
 def bandpower(signal: np.ndarray, fs: float, low: float, high: float) -> float:
@@ -18,10 +17,38 @@ def bandpower(signal: np.ndarray, fs: float, low: float, high: float) -> float:
     return power / total
 
 
+def _read_csv_numeric_matrix(csv_bytes: bytes) -> np.ndarray:
+    buf = io.BytesIO(csv_bytes)
+    try:
+        data = np.genfromtxt(buf, delimiter=",", names=True, dtype=float, encoding=None)
+        if isinstance(data, np.ndarray) and data.dtype.names:
+            cols: List[np.ndarray] = [np.asarray(data[name], dtype=float) for name in data.dtype.names]
+            values = np.vstack(cols).T
+        else:
+            values = np.atleast_2d(np.asarray(data, dtype=float))
+    except Exception:
+        buf.seek(0)
+        data = np.genfromtxt(buf, delimiter=",", dtype=float)
+        values = np.atleast_2d(np.asarray(data, dtype=float))
+    # Drop rows with NaNs
+    values = values[~np.isnan(values).any(axis=1)]
+    return values
+
+
+def _excess_kurtosis(x: np.ndarray) -> float:
+    x = x.astype(float)
+    if x.size == 0:
+        return 0.0
+    mean = float(x.mean())
+    std = float(x.std())
+    if std == 0.0:
+        return 0.0
+    m4 = float(np.mean((x - mean) ** 4))
+    return m4 / (std ** 4) - 3.0
+
+
 def extract_eeg_features_from_csv_bytes(csv_bytes: bytes, fs: float = 256.0) -> Dict[str, float]:
-    df = pd.read_csv(io.BytesIO(csv_bytes))
-    # Expect multiple EEG channels as columns; compute relative band powers
-    values = df.select_dtypes(include=["number"]).to_numpy()
+    values = _read_csv_numeric_matrix(csv_bytes)
     if values.size == 0:
         return {}
     features: Dict[str, float] = {}
@@ -34,7 +61,6 @@ def extract_eeg_features_from_csv_bytes(csv_bytes: bytes, fs: float = 256.0) -> 
         features[f"ch{channel_index}_gamma"] = bandpower(channel, fs, 30, 45)
     # Simple global stats
     features["global_std"] = float(values.std())
-    kurt_series = pd.DataFrame(values).kurtosis(skipna=True)
-    features["global_kurt"] = float(kurt_series.mean()) if hasattr(kurt_series, "mean") else float(kurt_series)
+    features["global_kurt"] = _excess_kurtosis(values.flatten())
     return features
 
